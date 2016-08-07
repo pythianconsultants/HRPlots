@@ -14,7 +14,7 @@ master_complete <- master[complete.cases(master$Job.ID.Release.Date),]
 master_complete <- master_complete%>%mutate(Year=year(Job.ID.Release.Date),
                                             Month=month(Job.ID.Release.Date))
 
-master_complete$Year <- as.factor(master_complete$Year)
+
 
 
 
