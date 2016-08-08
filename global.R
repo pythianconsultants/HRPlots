@@ -4,6 +4,9 @@ library(dplyr)
 library(lubridate)
 
 master <- read.csv("master.csv")
+joining <- read.csv("joining.csv")
+cand <- read.csv("cand.csv")
+
 master$Job.ID.Release.Date <- dmy(master$Job.ID.Release.Date)
 
 #Replace low values in CTC with mean
