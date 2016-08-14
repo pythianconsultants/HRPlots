@@ -12,11 +12,11 @@ shinyUI(fluidPage(
     sidebarPanel(
       selectInput(inputId="xvalue",
                   label = "Value for X-axis",
-                  choices = c(names(master_complete))        
+                  choices = c("Job.ID","URL")        
       ),
       selectInput(inputId="fillvalue",
                   label = "Fill by",
-                  choices = c("Recruiter.Code","Year")
+                  choices = c("Recruiter.Code")
       )
     ),
     
