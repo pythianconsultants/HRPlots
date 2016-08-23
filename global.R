@@ -7,41 +7,27 @@ master <- read.csv("master.csv")
 
 
 #Convert dates to date format
-master[3:4] <- lapply(master[3:4], mdy)
-master$Job.ID.Release.Date <- dmy(master$Job.ID.Release.Date)
+master[3:5] <- lapply(master[3:5], dmy)
 
-#function for generating random dates
-rand.date=function(start.day,end.day,data){   
-  size=dim(data)[1]    
-  days=seq.Date(start.day,end.day,by="day")  
-  pick.day=runif(size,1,length(days))  
-  date=days[pick.day]  
-}
+master$Recruiter.Code[master$Recruiter.Code==""] <- "1796"
+master$Recruiter.Code <- factor(master$Recruiter.Code)
 
-master2 <- master
-master2$Job.ID.Creation.Date <- rand.date(min(master$Job.ID.Creation.Date, na.rm=T),
-                                          max(master$Job.ID.Creation.Date,na.rm=T),master2)
+master <- mutate(master, ap_cr=(Job.ID.Approval.Date-Job.ID.Creation.Date),
+                 rl_cr=(Job.ID.Release.Date-Job.ID.Approval.Date),
+                 cuml=(Job.ID.Release.Date-Job.ID.Creation.Date))
+released <- master%>%filter(Status=='Released')
 
-rnd_days <- ceiling(runif(nrow(master2),2,10))
-master2$Job.ID.Approval.Date <- master2$Job.ID.Creation.Date+ddays(rnd_days)
+joining <- read.csv("joining.csv")
 
-rnd_days2 <- ceiling(runif(nrow(master2),2,15))
-master2$Job.ID.Approval.Date <- master2$Job.ID.Approval.Date+ddays(rnd_days2)
-
-#Create new time difference variables
-master2$app_crt <- difftime(master2$Job.ID.Approval.Date,master2$Job.ID.Creation.Date,"days")
-
-master2$rls_crt <- difftime(master2$Job.ID.Release.Date,master2$Job.ID.Creation.Date,"days")
-
-#Replace low values in CTC with mean
-master2$Min.CTC[master2$Min.CTC<100] <- round(mean(master2$Min.CTC))
-master2$Max.CTC[master2$Max.CTC<100] <- round(mean(master2$Max.CTC))
-
-#Consider complete cases
-master3 <- master2[complete.cases(master2),]
-
-jobs <- master2%>%group_by(Job.ID)%>%summarise(Count=n())%>%filter(Count>1)
+URL <- rep(released$URL,released$No.of.vacancies)
+Job.ID <- rep(released$Job.ID,released$No.of.vacancies)
 
 
+joining$Candidate.ID[joining$Candidate.ID=='C00001'] <- "C0001"
+joining$Candidate.ID <- factor(joining$Candidate.ID)
+
+candidates <- sample(joining$Candidate.ID, length(URL),replace=T)
+
+test <- cbind.data.frame(URL,Job.ID,candidates)
 
 
