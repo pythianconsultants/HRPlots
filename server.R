@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 shinyServer(function(input, output) {
   
   output$box <- renderPlotly({
@@ -11,3 +12,17 @@ ggplot(cnv, aes(reorder(Date,Count),Count,fill=URL))+
   geom_bar(stat="identity")+coord_flip()
 
 
+=======
+shinyServer(function(input, output) {
+  
+  output$box <- renderPlotly({
+    
+    p <- ggplot(master3, aes_string(x=input$xvalue,fill=input$fillvalue))+geom_bar()
+    ggplotly(p)
+})
+})
+#Added a comment
+
+
+
+>>>>>>> 019cebe1a9bf1903946219b87c5724ab67ac5c37
