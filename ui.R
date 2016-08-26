@@ -12,12 +12,13 @@ shinyUI(fluidPage(
     sidebarPanel(
       selectInput(inputId="xvalue",
                   label = "Value for X-axis",
-                  choices = c("Job.ID","URL")        
+                  choices = c("URL","Recruiter.Code")        
       ),
-      selectInput(inputId="fillvalue",
+      checkboxGroupInput(inputId="fillvalue",
                   label = "Fill by",
-                  choices = c("Recruiter.Code")
-      )
+                  choices = levels(master$Status),selected = c("Closed","Submitted")
+      ),
+      width=3
     ),
     
     # Show a plot of the generated distribution

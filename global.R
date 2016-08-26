@@ -2,46 +2,78 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 library(lubridate)
+library(tidyr)
 
+#Read in the data (Table 1)
 master <- read.csv("master.csv")
 
 
 #Convert dates to date format
-master[3:4] <- lapply(master[3:4], mdy)
-master$Job.ID.Release.Date <- dmy(master$Job.ID.Release.Date)
+master[3:5] <- lapply(master[3:5], dmy)
 
-#function for generating random dates
-rand.date=function(start.day,end.day,data){   
-  size=dim(data)[1]    
-  days=seq.Date(start.day,end.day,by="day")  
-  pick.day=runif(size,1,length(days))  
-  date=days[pick.day]  
-}
+#Replace missng recruiter code
+master$Recruiter.Code[master$Recruiter.Code==""] <- "1796"
+master$Recruiter.Code <- factor(master$Recruiter.Code)
 
-master2 <- master
-master2$Job.ID.Creation.Date <- rand.date(min(master$Job.ID.Creation.Date, na.rm=T),
-                                          max(master$Job.ID.Creation.Date,na.rm=T),master2)
+#Add date differences
+master <- mutate(master, ap_cr=(Job.ID.Approval.Date-Job.ID.Creation.Date),
+                 rl_cr=(Job.ID.Release.Date-Job.ID.Approval.Date),
+                 cuml=(Job.ID.Release.Date-Job.ID.Creation.Date))
 
-rnd_days <- ceiling(runif(nrow(master2),2,10))
-master2$Job.ID.Approval.Date <- master2$Job.ID.Creation.Date+ddays(rnd_days)
+#Filter for job ads which got Closed
+Closed <- master%>%filter(Status=='Closed')
 
-rnd_days2 <- ceiling(runif(nrow(master2),2,15))
-master2$Job.ID.Approval.Date <- master2$Job.ID.Approval.Date+ddays(rnd_days2)
+#Read in joining data (Table 2)
+joining <- read.csv("joining.csv")
 
-#Create new time difference variables
-master2$app_crt <- difftime(master2$Job.ID.Approval.Date,master2$Job.ID.Creation.Date,"days")
+#Repeat URL and Job IDs as per vaccancies
+URL <- rep(Closed$URL,Closed$No.of.vacancies)
+Job.ID <- rep(Closed$Job.ID,Closed$No.of.vacancies)
 
-master2$rls_crt <- difftime(master2$Job.ID.Release.Date,master2$Job.ID.Creation.Date,"days")
+#Some basic cleaning
+joining$Candidate.ID[joining$Candidate.ID=='C00001'] <- "C0001"
+joining$Candidate.ID <- factor(joining$Candidate.ID)
 
-#Replace low values in CTC with mean
-master2$Min.CTC[master2$Min.CTC<100] <- round(mean(master2$Min.CTC))
-master2$Max.CTC[master2$Max.CTC<100] <- round(mean(master2$Max.CTC))
+#Randomly assign candidates to these jobs
+candidates <- sample(joining$Candidate.ID, length(URL),replace=T)
 
-#Consider complete cases
-master3 <- master2[complete.cases(master2),]
+#Shortlisting Date
+JIRD <- rep(Closed$Job.ID.Release.Date,Closed$No.of.vacancies)
+Shortlisting.Date <- JIRD+runif(length(JIRD),min = 2,max = 7)
+ind <- which(Shortlisting.Date %in% sample(Shortlisting.Date, 0.5*length(Shortlisting.Date)))
+Shortlisting.Date[ind] <- NA
+#Screening Date
+Screening.Date <- Shortlisting.Date+runif(length(JIRD),min = 2,max = 10)
+indx <- which(!is.na(Screening.Date))
+Screening.Date[sample(indx,0.3*length(indx))] <- NA
+#Review Date
+Review.Date <- Screening.Date+runif(length(JIRD),min = 2,max = 7)
+indx <- which(!is.na(Review.Date))
+Review.Date[sample(indx,0.4*length(indx))] <- NA
+#Interview Date
+Interview.Date <- Review.Date+runif(length(JIRD),min = 2,max = 9)
+indx <- which(!is.na(Interview.Date))
+Interview.Date[sample(indx,0.3*length(indx))] <- NA
+#Offer Submission Date
+OSD <- Interview.Date+runif(length(JIRD),min = 1,max = 4)
+indx <- which(!is.na(OSD))
+OSD[sample(indx,0.25*length(indx))] <- NA
+#Offer Approval Date
+OAD <- OSD+runif(length(JIRD),min = 2,max = 5)
+indx <- which(!is.na(OAD))
+OAD[sample(indx,0.15*length(indx))] <- NA
+#Offer Acceptance Date
+OACD <- OAD+runif(length(JIRD),min = 1,max = 5)
+indx <- which(!is.na(OACD))
+OACD[sample(indx,0.1*length(indx))] <- NA
+#Date Of Joining
+DOJ <- OACD+runif(length(JIRD),min = 7,max = 20)
+indx <- which(!is.na(DOJ))
+DOJ[sample(indx,0.5*length(indx))]<- NA
 
-jobs <- master2%>%group_by(Job.ID)%>%summarise(Count=n())%>%filter(Count>1)
+#Combine all in one data frame
+test <- cbind.data.frame(URL,Job.ID,candidates,Shortlisting.Date,Screening.Date,
+                         Review.Date,Interview.Date,OSD,OAD,OACD,DOJ)
 
-
-
-
+conv <- gather(test, Date, Value, Shortlisting.Date:DOJ)
+cnv <- conv%>%filter(!is.na(Value))%>%group_by(URL,Date)%>%summarize(Count=n())
